@@ -131,8 +131,6 @@ def oneClient(conn, addr):
             (k.lower(), v) for k, v in [i.split(': ') for i in recived_data[:-4].decode('utf8').splitlines()[1:]])
         file_name = ntpath.basename(file_data.get('filename', "new_file"))
         file_size = int(file_data.get('filesize', 0))
-        print(recived_data)
-        print(file_data)
         print("Upload request form: " + addr[0] + ":" + str(addr[1]) + "\n" +
               "File name: " + file_name + "\n" +
               "File size: " + str(file_size) + " B")
@@ -207,6 +205,9 @@ def oneClient(conn, addr):
                 except socket.error as socket_exc:
                     print("Socket error: {0}".format(socket_exc))
                     logging.error("Socket error: {0}".format(socket_exc))
+                    disconnectClient(conn, addr)
+                    os.remove("uploaded_files/" + temp_file_name)
+                    return
 
                 password = recived_data.decode('utf8').split(": ")
 
@@ -215,8 +216,11 @@ def oneClient(conn, addr):
                     test_open = test_zip.open(test[0].filename, "r", password[1][:-4].encode("utf-8"))
                     test_open.close()
                 except IndexError as index_exc:
-                    print("Index error: {0}".format(index_exc))
-                    logging.error("Index error: {0}".format(index_exc))
+                    print("Zip file " + temp_file_name + " is empty")
+                    logging.error("Zip file " + temp_file_name + " is empty")
+                    disconnectClient(conn, addr)
+                    os.remove("uploaded_files/" + temp_file_name)
+                    return
                 except RuntimeError:
                     print("Bad password for file: " + temp_file_name)
                     logging.error("Bad password for file: " + temp_file_name)
@@ -232,8 +236,15 @@ def oneClient(conn, addr):
         conn.send(response.encode('utf8'))
 
         recived_data = b''
-        while b'\r\n\r\n' not in recived_data:
-            recived_data += conn.recv(BUFF)
+        try:
+            while b'\r\n\r\n' not in recived_data:
+                recived_data += conn.recv(BUFF)
+        except socket.error as socket_exc:
+            print("Socket error: {0}".format(socket_exc))
+            logging.error("Socket error: {0}".format(socket_exc))
+            disconnectClient(conn, addr)
+            os.remove("uploaded_files/" + temp_file_name)
+            return
 
         if recived_data is not None and "fileslist_request" in recived_data.decode('utf8').lower():
             response = zipFileContent(temp_file_name) + "\r\n\r\n"
@@ -289,6 +300,7 @@ def oneClient(conn, addr):
                     print("File " + temp_file_name[:-4] + "/" + file_path + " successfully sent to client\n")
                     logging.info("File " + temp_file_name[:-4] + "/" + file_path + " successfully sent to client")
             else:
+                os.remove("uploaded_files/" + temp_file_name)
                 disconnectClient(conn, addr)
                 break
 
@@ -324,4 +336,3 @@ if __name__ == "__main__":
         logging.info("Connected with: " + address[0] + ":" + str(address[1]))
         t = threading.Thread(target=oneClient, args=[client, address])
         t.start()
-

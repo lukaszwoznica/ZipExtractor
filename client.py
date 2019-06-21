@@ -1,7 +1,6 @@
 import ntpath
 import os
 import socket
-import zipfile
 import getpass
 
 from colorama import Fore, Back
@@ -104,6 +103,7 @@ def uploadRequest(filename, filesize, sock):
     if "204" in response[1]:
         print(Fore.YELLOW + "A selected file is encrypted")
         while True:
+            # password = getpass.getpass(Fore.CYAN + "Enter password: ")
             password = input(Fore.CYAN + "Enter password: ")
             request = "PASSWORD: " + password + "\r\n\r\n"
             sock.send(request.encode("utf-8"))
@@ -262,15 +262,19 @@ if __name__ == "__main__":
                 downloadRequest(file_path, sock, current_download_path)
 
             elif option == "2":
-                print("\n" + Back.LIGHTBLACK_EX + "--------------------------------------------------------------------------------" + Back.RESET)
-                print(Back.LIGHTBLACK_EX + "||" + Back.RESET + Fore.YELLOW + "                           Content of ZIP file                              " + Fore.RESET + Back.LIGHTBLACK_EX + "||" + Back.RESET)
-                print(Back.LIGHTBLACK_EX + "--------------------------------------------------------------------------------" + Back.RESET)
+                print(
+                    "\n" + Back.LIGHTBLACK_EX + "--------------------------------------------------------------------------------" + Back.RESET)
+                print(
+                    Back.LIGHTBLACK_EX + "||" + Back.RESET + Fore.YELLOW + "                           Content of ZIP file                              " + Fore.RESET + Back.LIGHTBLACK_EX + "||" + Back.RESET)
+                print(
+                    Back.LIGHTBLACK_EX + "--------------------------------------------------------------------------------" + Back.RESET)
                 print(Back.RESET + files_list)
 
             elif option == "3":
                 new_path = input(Fore.CYAN + "Enter path: " + Fore.RESET)
                 while not os.path.exists(new_path):
-                    choice = input(Fore.CYAN + "\nThe path you entered does not exist. Do you want to create it? (y/n) " + Fore.RESET)
+                    choice = input(
+                        Fore.CYAN + "\nThe path you entered does not exist. Do you want to create it? (y/n) " + Fore.RESET)
 
                     if choice.lower() == "y" or choice.lower() == "yes":
                         try:
