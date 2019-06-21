@@ -106,10 +106,13 @@ def checkFileExistence(file_path, zip_file):
     return False
 
 
-def getFileFromZip(file_path, zip_file):
+def getFileFromZip(file_path, zip_file, password):
     if checkFileExistence(file_path, zip_file):
         file = zipfile.ZipFile("uploaded_files/" + zip_file, "r")
-        opened_file = file.open(file_path)
+        if len(password) > 0:
+            opened_file = file.open(file_path, "r", password.encode("utf-8"))
+        else:
+            opened_file = file.open(file_path, "r")
         file.close()
         file_content = opened_file.read()
         file_size = len(file_content)
@@ -121,6 +124,7 @@ def getFileFromZip(file_path, zip_file):
 
 
 def oneClient(conn, addr):
+    password = ""
     recived_data = b''
     while b'\r\n\r\n' not in recived_data:
         recived_data += conn.recv(BUFF)
@@ -209,11 +213,12 @@ def oneClient(conn, addr):
                     os.remove("uploaded_files/" + temp_file_name)
                     return
 
-                password = recived_data.decode('utf8').split(": ")
+                password_header = recived_data.decode('utf8').split(": ")
+                password = password_header[1][:-4]
 
                 try:
                     test = test_zip.infolist()
-                    test_open = test_zip.open(test[0].filename, "r", password[1][:-4].encode("utf-8"))
+                    test_open = test_zip.open(test[0].filename, "r", password.encode("utf-8"))
                     test_open.close()
                 except IndexError as index_exc:
                     print("Zip file " + temp_file_name + " is empty")
@@ -224,7 +229,7 @@ def oneClient(conn, addr):
                 except RuntimeError:
                     print("Bad password for file: " + temp_file_name)
                     logging.error("Bad password for file: " + temp_file_name)
-                    response = "RESPONSE: 204\r\n\r\n"
+                    response = "RESPONSE: 205\r\n\r\n"
                     conn.send(response.encode('utf8'))
                     continue
                 print("Correct password for file: " + temp_file_name)
@@ -278,7 +283,7 @@ def oneClient(conn, addr):
                 logging.info("Download request form: " + addr[0] + ":" + str(addr[1]) + "\n" +
                              "File: " + temp_file_name[:-4] + "/" + file_path)
 
-                get_file_result = getFileFromZip(file_path, temp_file_name)
+                get_file_result = getFileFromZip(file_path, temp_file_name, password)
 
                 if not get_file_result:
                     response = "RESPONSE: 301\r\n" \
@@ -316,6 +321,9 @@ if __name__ == "__main__":
     else:
         print("Invalid ip address! The server can't be started")
         exit(1)
+
+    if not os.path.exists("uploaded_files"):
+        os.mkdir("uploaded_files")
 
     try:
         print("Running the server...")

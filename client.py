@@ -13,6 +13,8 @@ errors_dict = \
      "103": "The server rejected the file because it is not a ZIP file!",
      "201": "The server didn't receive the file data!",
      "202": "An error occurred while saving the file to the server!",
+     "203": "The ZIP file is damaged!",
+     "205": "Invalid password!",
      "301": "An invalid file path has been provided or the file does not exist!"}
 
 files_list = ""
@@ -115,8 +117,8 @@ def uploadRequest(filename, filesize, sock):
                 print(Fore.RED + "Socket error: {0}".format(socket_exc))
                 return False
             response = server_data.decode('utf8').split(": ")
-            if "204" in response[1]:
-                print(Fore.RED + "Invalid password!")
+            if "205" in response[1]:
+                print(Fore.RED + errors_dict["205"])
                 continue
             elif "200":
                 break
@@ -170,19 +172,19 @@ def downloadRequest(path, sock, download_path):
         (k.lower(), v) for k, v in [i.split(': ') for i in server_data[:-4].decode('utf8').splitlines()])
 
     file_size = int(response.get("filesize"))
-    if response.get("response") == "300" and file_size > 0:
+    if response.get("response") == "300":
         file_content = b''
+        if file_size > 0:
+            try:
+                while len(file_content) < file_size:
+                    file_content += sock.recv(file_size - len(file_content))
+            except socket.error as socket_exc:
+                print(Fore.RED + "Socket error: {0}".format(socket_exc))
+                return
 
-        try:
-            while len(file_content) < file_size:
-                file_content += sock.recv(file_size - len(file_content))
-        except socket.error as socket_exc:
-            print(Fore.RED + "Socket error: {0}".format(socket_exc))
-            return
-
-        if not file_content:
-            print(Fore.RED + "\nAn error occurred while downloading the file from the server!")
-            return
+            if not file_content:
+                print(Fore.RED + "\nAn error occurred while downloading the file from the server!")
+                return
 
         if os.path.exists(download_path + file_name):
             file_name = renameIfExist(download_path, file_name)
