@@ -63,7 +63,7 @@ def renameIfExist(download_path, file_name):
     return file_name
 
 
-def uploadRequest(filename, filesize, sock):
+def uploadRequest(filename, filesize, file_content, sock):
     request = "UPLOAD\r\n" + \
               "FILENAME: " + filename + "\r\n" + \
               "FILESIZE: " + str(filesize) + "\r\n\r\n"
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         print(Fore.RED + "Socket error: {0}".format(socket_exc))
         exit(1)
 
-    upload_result = uploadRequest(file_name, file_size, sock)
+    upload_result = uploadRequest(file_name, file_size, file_content, sock)
 
     if upload_result:
         option = 0
